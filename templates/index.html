@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=, initial-scale=1.0">
+    <title>WEATHER app</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/spacy-js/dist/spacy.browser.umd.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+</head>
+</head>
+<body class="bg-secondary text-light">
+    <div class="text-center">
+    <h1 class="mt-5">weather</h1>
+    <form action="/" method="post">
+        <input type="text" name="cityName" id="cityName" placeholder="City">
+        <input type="text" name="stateName" id="stateName" placeholder="State">
+        <input type="text" name="countryName" id="countryName" placeholder="Country">
+        <button>find</button>
+    </form>
+    {% if data %}
+    {{ data.main }}: {{data.description}} <br>
+    <img src="https://openweathermap.org/img/wn/{{data.icon}}@2x.png" alt="icon">
+    {{data.temperature}} C
+    {% endif %}
+    </div>
+
+    <div id="googleMap" style="width:100%;height:400px;"></div>
+
+    <div class="text-center">
+        <h1 class="mt-5">Which cities for weather are you looking for?</h1>
+        <div class="card mt-5">
+            <div class="card-body" id="chatbox">
+                <div class="container">
+                    <div class="row">
+                        <div class="col">
+                            <p class="message">Welcome! Input the cities that you want to display weather.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <form id="query-form">
+                    <div class="input-group">
+                        <input type="text" name="query" id="query" class="form-control col-1" placeholder="Type your query here">
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addMessage(message) {
+            $('#chatbox').append('<p>' + message + '</p>');
+        }
+
+        function handleQuery(query) {
+            addMessage('User: ' + query);
+
+            var cities = query.match(/[A-Za-z]+/g);
+            if (cities && cities.length > 0) {
+                addMessage('Bot: Of course! Here is the weather for these cities:');
+
+                cities.forEach(function(city) {
+                var url = '/get-weather?city=' + city;
+                $.get(url, function(response) {
+                    addMessage('Bot: Weather in ' + city + ':');
+                    var weatherData = JSON.parse(response);
+                    if (weatherData) {
+                    var weatherHtml = '<p>' + weatherData.main + ': ' + weatherData.description + '</p>';
+                    weatherHtml += '<img src="https://openweathermap.org/img/wn/' + weatherData.icon + '@2x.png" alt="icon">';
+                    weatherHtml += '<p>' + weatherData.temperature + ' C</p>';
+                    addMessage(weatherHtml);
+                    } else {
+                    addMessage('No weather data available for ' + city);
+                    }
+                });
+                });
+            } else {
+                addMessage("Bot: Please enter at least one city.");
+            }
+            }
+
+
+        $(document).ready(function() {
+            $('#query-form').submit(function(event) {
+                event.preventDefault();
+                var query = $('#query').val();
+                handleQuery(query);
+                $('#query').val('');
+            });
+        });
+    </script>
+
+    <div id="chat-container">
+        <div id="chatbox" class="mt-5">
+        </div>
+      </div>
+      <div id="weather-container" class="mt-5"></div>
+
+    <script>
+        var data = {
+            lat: "{{data.lat}}",
+            lng: "{{data.lng}}"
+        };
+
+        function initMap() {
+            var mapOptions = {
+                center: { lat: parseFloat(data.lat), lng: parseFloat(data.lng) },
+                zoom: 13
+            };
+            var map = new google.maps.Map(document.getElementById("googleMap"), mapOptions);
+        }
+    </script>
+    <script>
+        $(document).ready(function() {
+            function scrollChatToBottom() {
+                var chatContainer = $('#messages');
+                chatContainer.scrollTop(chatContainer.prop('scrollHeight'));
+            }
+
+            function displayUserMessage(message) {
+                $('#messages').append('<div class="message user-message">' + message + '</div>');
+                scrollChatToBottom();
+            }
+
+            function displayBotMessage(message) {
+                $('#messages').append('<div class="message bot-message">' + message + '</div>');
+                scrollChatToBottom();
+            }
+
+            function sendMessageToServer(message) {
+                $.ajax({
+                    type: 'POST',
+                    url: '/chat',
+                    data: {
+                        message: message
+                    },
+                    success: function(response) {
+                        var reply = response.reply;
+                        displayBotMessage(reply);
+                    },
+                    error: function(error) {
+                        console.log('Error:', error);
+                    }
+                });
+            }
+
+            $('#message-form').submit(function(e) {
+                e.preventDefault();
+                var userInput = $('#message-input').val();
+                if (userInput) {
+                    displayUserMessage(userInput);
+                    sendMessageToServer(userInput);
+                    $('#message-input').val('');
+                }
+            });
+        });
+    </script>
+    
+    <script async defer
+     src="https://maps.googleapis.com/maps/api/js?key={{key}}&callback=initMap">
+    </script>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">Open AI Weather Chatbot</h1>
+            </div>
+            <div class="card-body">
+                <div id="messages"></div>
+                <form id="message-form">
+                    <div class="input-group mb-3">
+                        <input type="text" id="message-input" class="form-control" placeholder="Type your message...">
+                        <div class="input-group-append">
+                            <button type="submit" class="btn btn-primary">Send</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
