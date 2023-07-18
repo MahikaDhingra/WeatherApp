@@ -1,5 +1,5 @@
 # WeatherAPP
-A Flask solution to return weather data, utilzing Openai and openweather.
+A Flask solution to return weather data, utilzing OpenAI and OpenWeather.
 
 # Dev-Environment set up:
 
